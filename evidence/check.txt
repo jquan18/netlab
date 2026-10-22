@@ -1,0 +1,4 @@
+PROBLEM: link s3 — s9 names s9, which isn't a switch or host
+PROBLEM: h5 and h2 both use 10.8.0.2
+PROBLEM: h5 and h2 both use fd00:3308::2
+Fix the description and try again.

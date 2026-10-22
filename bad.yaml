@@ -1,0 +1,58 @@
+# bad.yaml — a copy of topology.yaml with deliberate mistakes, to prove check() works.
+# Mistake 1: h5 has the same IPv4 and IPv6 addresses as h2.
+# Mistake 2: a link to s9, a switch that doesn't exist.
+# It is still perfectly valid YAML.
+#
+# (Original header:)
+# build_topo.py builds it in Mininet; make_page.py turns the same file into docs/index.html.
+#
+# Design: a two-tier tree. s1 is the core switch; s2 and s3 are access switches,
+# each serving one group of three hosts. Every host is one access switch away from
+# its group and three switches away from the other group.
+#
+# The switches are LinuxBridge with no spanning tree, so the design must stay
+# loop-free: each access switch has exactly one uplink to the core.
+#
+# All six hosts share one subnet, 10.8.0.0/24 and fd00:3308::/64: there is no router,
+# so the whole tree is a single Layer 2 broadcast domain.
+
+student_id_last4: "3308"
+
+switches:
+  - s1   # core
+  - s2   # access, group A
+  - s3   # access, group B
+
+hosts:
+  # Group A, on s2
+  - name: h1
+    ip: 10.8.0.1/24
+    ipv6: fd00:3308::1/64
+  - name: h2
+    ip: 10.8.0.2/24
+    ipv6: fd00:3308::2/64
+  - name: h3
+    ip: 10.8.0.3/24
+    ipv6: fd00:3308::3/64
+  # Group B, on s3
+  - name: h4
+    ip: 10.8.0.4/24
+    ipv6: fd00:3308::4/64
+  - name: h5
+    ip: 10.8.0.2/24
+    ipv6: fd00:3308::2/64
+  - name: h6
+    ip: 10.8.0.6/24
+    ipv6: fd00:3308::6/64
+
+# Each link joins two nodes. Uplinks first, then the host links.
+links:
+  - [s2, s1]
+  - [s3, s1]
+  - [h1, s2]
+  - [h2, s2]
+  - [h3, s2]
+  - [h4, s3]
+  - [h5, s3]
+  - [h6, s3]
+  - [s3, s9]

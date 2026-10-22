@@ -54,9 +54,20 @@ def check_mine(spec):
 def check(spec):
     """Return a list of problems in the description (an empty list means it looks fine).
 
-    Week 2 task: report any IP address that is used by more than one host.
+    Week 2 task: report any IP address (IPv4 or IPv6) that is used by more than one host,
+    and any link that names a switch or host that doesn't exist.
     """
     problems = []
+
+    nodes = set(spec["switches"]) | {host["name"] for host in spec["hosts"]}
+    for link in spec["links"]:
+        if len(link) != 2:
+            problems.append(f"link {link} must join exactly two nodes")
+            continue
+        for end in link:
+            if end not in nodes:
+                problems.append(f"link {link[0]} — {link[1]} names {end}, which isn't a switch or host")
+
     owner = {}  # address -> name of the first host that uses it
     for host in spec["hosts"]:
         for key in ("ip", "ipv6"):
