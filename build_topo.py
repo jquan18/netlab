@@ -57,7 +57,20 @@ def check(spec):
     Week 2 task: report any IP address that is used by more than one host.
     """
     problems = []
-    # TODO: your code here
+    owner = {}  # address -> name of the first host that uses it
+    for host in spec["hosts"]:
+        for key in ("ip", "ipv6"):
+            if key not in host:
+                continue
+            # Compare addresses, not text: fd00:3308::2 and fd00:3308:0::2 are the same address.
+            try:
+                address = ipaddress.ip_interface(host[key]).ip
+            except ValueError:
+                continue  # check_mine() already reports addresses that don't parse
+            if address in owner:
+                problems.append(f"{host['name']} and {owner[address]} both use {address}")
+            else:
+                owner[address] = host["name"]
     return problems
 
 
