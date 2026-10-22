@@ -64,11 +64,8 @@ def links_section(spec):
         <ul><li>h1 — s1</li><li>s1 — s2</li></ul>
     Use esc() on every name, as hosts_section() does.
     """
-    items = []
-    for a, b in spec["links"]:
-        kind = "switch uplink" if a in spec["switches"] and b in spec["switches"] else "host link"
-        items.append(f"<li>{esc(a)} — {esc(b)} <span class=\"meta\">({kind})</span></li>")
-    return f"<ul>{''.join(items)}</ul>"
+    items = "".join(f"<li>{esc(a)} — {esc(b)}</li>" for a, b in spec["links"])
+    return f"<ul>{items}</ul>"
 
 
 def mermaid_diagram(spec):
