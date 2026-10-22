@@ -1,19 +1,25 @@
-# topology.yaml — a small network described as data.
-# build_topo.py reads this file and creates exactly this network in Mininet.
+# topology.yaml — my network, described as data.
+# build_topo.py builds it in Mininet; make_page.py turns the same file into docs/index.html.
 #
-# Make it yours first (see "Your addresses" in the lab):
-#   NNNN = the last 4 digits of your student ID, e.g. 4207
-#   NN   = the last 2 digits, without a leading zero, e.g. 7
-# Replace every NNNN and NN below. Don't put your full student ID here: this file
-# goes in your repository, which may be public.
+# Design: a two-tier tree. s1 is the core switch; s2 and s3 are access switches,
+# each serving one group of three hosts. Every host is one access switch away from
+# its group and three switches away from the other group.
+#
+# The switches are LinuxBridge with no spanning tree, so the design must stay
+# loop-free: each access switch has exactly one uplink to the core.
+#
+# All six hosts share one subnet, 10.8.0.0/24 and fd00:3308::/64: there is no router,
+# so the whole tree is a single Layer 2 broadcast domain.
 
 student_id_last4: "3308"
 
 switches:
-  - s1
-  - s2
+  - s1   # core
+  - s2   # access, group A
+  - s3   # access, group B
 
 hosts:
+  # Group A, on s2
   - name: h1
     ip: 10.8.0.1/24
     ipv6: fd00:3308::1/64
@@ -23,14 +29,24 @@ hosts:
   - name: h3
     ip: 10.8.0.3/24
     ipv6: fd00:3308::3/64
+  # Group B, on s3
   - name: h4
     ip: 10.8.0.4/24
     ipv6: fd00:3308::4/64
+  - name: h5
+    ip: 10.8.0.5/24
+    ipv6: fd00:3308::5/64
+  - name: h6
+    ip: 10.8.0.6/24
+    ipv6: fd00:3308::6/64
 
-# Each link joins two nodes.
+# Each link joins two nodes. Uplinks first, then the host links.
 links:
-  - [h1, s1]
-  - [h2, s1]
-  - [h3, s1]
-  - [h4, s2]
-  - [s1, s2]
+  - [s2, s1]
+  - [s3, s1]
+  - [h1, s2]
+  - [h2, s2]
+  - [h3, s2]
+  - [h4, s3]
+  - [h5, s3]
+  - [h6, s3]
