@@ -3,27 +3,56 @@
 # leave a blank line between paragraphs. Refer to YOUR network and YOUR evidence.
 # Never put your name or full student ID here: the page is public.
 
-repository: https://github.com/YOUR-USERNAME/YOUR-REPOSITORY
+repository: https://github.com/jqc-lgtm/netlab
 
 answers:
   planes:
     question: "Where are the data, control and management planes in your network?"
-    answer: ""
+    answer: |
+      The data plane is the three Linux bridges, s1, s2 and s3. They forward every frame in the kernel using a MAC table they fill in themselves. macs.txt is a dump of that table on s1.
+
+      There is no separate control plane. build_topo.py starts Mininet with controller=None, and nothing runs a routing protocol or installs forwarding rules. Every "decision" is the bridges' own flood-and-learn, so the control logic is built into the data plane. That is why the network is loop-free: with no spanning tree running, a second path between s2 and s3 would let broadcasts circulate forever.
+
+      The management plane is me and my scripts. topology.yaml is the source of truth, build_topo.py turns it into hosts, bridges and links, and I used the mininet> prompt to configure and inspect things (ip addr add, ip neigh, brctl showmacs). make_page.py is management too: it reads the same file to document the network instead of building it.
+
   learning:
     question: "How did your switches learn which port leads to each host? Use your MAC table evidence."
-    answer: ""
+    answer: |
+      Nobody told them. When pingall started, h1's first ARP request was a broadcast. s2 flooded it out of every port, including its uplink to the core, so s1 saw a frame from 00:00:00:00:00:01 arriving on its port 1 and recorded that. Each later frame taught every bridge on its path where its sender lives. Replies came back as unicast and only went out of the learned port.
+
+      macs.txt shows the result on s1, which has no hosts of its own. 00:00:00:00:00:01, :02 and :03 (h1-h3) are all behind port 1, the link to s2. :04, :05 and :06 (h4-h6) are all behind port 2, the link to s3. So the core only knows which branch of the tree a host is on, not which access port: that detail lives in s2 and s3. The "is local? yes" rows are s1's own port addresses. The other random-looking MACs are most likely the switch-side interfaces of s2 and s3, which send a few IPv6 housekeeping frames when they come up. Every ageing timer reads about 4-5 seconds, because pingall had only just refreshed them; an entry that goes unused is eventually forgotten and has to be learned again.
+
   kind:
     question: "Which of the four kinds of programmability is this assignment (a network described as data, then built and documented by scripts)? Why isn't it any of the other three?"
-    answer: ""
+    answer: |
+      It is (d), automated configuration management. The intent is written once in topology.yaml and kept in Git. Scripts check it (check(), check_mine()) and then produce outputs from it: the running Mininet network and this page. That is the same shape as YAML intent plus templates pushed by Ansible, at toy scale.
+
+      It isn't (a): I never changed how a packet is processed. The bridges are stock Linux bridges, and there is no P4 program and no new header. It isn't (b): there is no controller (controller=None) and no OpenFlow. Forwarding decisions are still made locally by MAC learning. It isn't (c) either: I don't talk to any device through a programmatic interface like NETCONF, RESTCONF or gNMI, and nothing here is described by a YANG model. My scripts generate configuration, but they don't use device APIs to read or set it.
+
   two_am:
     question: "Week 1's 2 a.m. change on 40 switches: what would be different if those switches were described like your network?"
-    answer: ""
+    answer: |
+      The change would be one edit to one file instead of forty SSH sessions. The SNMP community would be a single value in the data, the same script would render and push it to all 40 switches, and git diff would show exactly the line that changed before anything went near a device. A colleague could review that diff, and a check() step could refuse obviously bad data (an empty secret, a switch name that doesn't exist) before the push, the way my check() refused bad.yaml.
+
+      It removes the per-device typos that make 40 hand edits risky: at 1% per device that's about a 33% chance of at least one mistake. It also removes drift, because the file, not each switch, is the record of what the configuration should be. If the change goes wrong, git revert gives the previous version back. What it doesn't fix by itself is that a mistake in the data is now copied to all 40 at once, and that pushing CLI is still not a transaction. A run that dies on switch 23 still leaves a half-changed network, which is where (c) and transactional interfaces would help.
+
   model:
     question: "What's the difference between your network's data model and its serialisation? Use YAML and JSON as the example."
-    answer: ""
+    answer: |
+      The data model is the structure: a network has a list of switch names, a list of hosts (each with a name, an IPv4 address and an IPv6 address), and a list of links, each joining exactly two nodes. build_topo.py and make_page.py only care about that structure. They work on Python lists and dicts after load() has parsed the file.
+
+      topology.yaml and topology.json are two serialisations of that same model. Building from either one gave the same network: 3 switches, 6 hosts, 8 links, and 30/30 in pingall. What the JSON version lost is everything that isn't data, mainly the comments. My YAML explains the two-tier design, why it must stay loop-free and which group each host is in, and the JSON has none of that. JSON is also stricter: "3308" is quoted, so it's clearly a string. In YAML I had to quote it deliberately, or an ID starting with 0 could be read as a number.
+
   check:
     question: "Why is it better to catch bad data in check() than with pingall? What did IPv6 notice about a duplicate address that IPv4 didn't?"
-    answer: ""
+    answer: |
+      pingall tests symptoms, after the bad network already exists. When I gave h4 the same addresses as h2 in the lab, pingall still reported 11/12: the network looked almost healthy, and which host answered for 10.8.0.2 depended on who won the ARP race. check() looks at the data before anything is built, and says exactly what is wrong and where. check.txt shows it stopping bad.yaml with three PROBLEM lines: h5 and h2 sharing 10.8.0.2, sharing fd00:3308::2, and a link to s9, which doesn't exist. A link to a missing switch is perfectly valid YAML, but no ping could ever explain it. And because make_page.py runs the same checks, a broken network can't be published either.
+
+      dad.txt shows the difference between the protocols. I gave h2 a copy of h1's addresses while h1 was still using them. IPv6 ran Duplicate Address Detection, got an answer from h1, and marked fd00:3308::1 as "dadfailed tentative", so h2 never uses it. IPv4 just added 10.8.0.1 as a secondary address with no warning at all.
+
   git:
     question: "What does your Git history give you that copying files into folders named topology-v2-final wouldn't?"
-    answer: ""
+    answer: |
+      My history is a sequence of small, named steps: the starting topology, adding s2 and h4, the duplicate-address check, my own design, the stricter link check, the evidence, and the generated page. Each commit records exactly what changed, when and why. git diff on "Add s2 and h4" shows six added lines and nothing else, while two folders of copies only show that something is different somewhere.
+
+      It also lets me go back. If a change breaks the network I can see which commit did it and revert just that one, instead of guessing which of topology-v2-final or topology-v2-final-REAL was the good one. And the repository is the publishing mechanism: GitHub Pages serves docs/ straight from main, so the page always matches a specific, recorded version of the data.
