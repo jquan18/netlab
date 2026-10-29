@@ -2,18 +2,33 @@
 # A few sentences each, in your own words, about YOUR network and YOUR evidence.
 # Leave a blank line between paragraphs. Never put your name or full student ID here.
 
-repository: https://github.com/YOUR-USERNAME/YOUR-REPOSITORY
+repository: https://github.com/jquan18/netlab
 
 answers:
   design:
     question: "Describe your design: why these routers, LANs and links, and how you chose the addresses."
-    answer: ""
+    answer: |
+      I made two sites, r1 and r2 in site A and r3 and r4 in site B, and joined the four routers in a ring, so every pair of routers has two ways to reach each other. Each site's LANs sit next to each other (10.8.0.0/24 and 10.8.1.0/24, then 10.8.2.0/24 and 10.8.3.0/24) so one /23 can cover a whole site. The links are /30s named after the routers they join, like 10.8.14.0/30 for r1–r4, and they're far away from the LANs so they never fall inside a summary.
+
+      One side effect shows in traces.txt: hop 3 on the way to h3 is * * *. r3 answers from its r2-side address 10.8.23.2, but r1 has no route back to that link, so its reverse-path filter drops the reply. h3 itself still answers, because 10.8.2.10 is inside r1's /23.
+
   summary:
     question: "Which route summarises several LANs? Which networks does it cover, why is it correct, and what else would it attract if you added a network inside its range?"
-    answer: ""
+    answer: |
+      r1 has 10.8.2.0/23 via r4 (10.8.14.2), which covers h3's 10.8.2.0/24 and h4's 10.8.3.0/24. It's correct because a /23 is exactly 10.8.2.0 to 10.8.3.255, so it holds those two LANs and nothing else I use. In summary.txt, h3 and h4 both go via 10.8.14.2. r2, r3 and r4 have the same kind of /23 for the other site.
+
+      If I added a new network inside 10.8.2.0/23 somewhere else, like on r2, r1 would still send it to r4 because the /23 catches it. It would only go the right way if I added a more specific route for it, since longest-prefix match prefers that.
+
   failure:
     question: "When you took a link down, what happened, and why couldn't your routes recover even though another path existed? What would have recovered?"
-    answer: ""
+    answer: |
+      I took down the r1–r4 link. In failure.txt the traceroute from h1 to h3 gets nothing back at any hop, and r1 ip route get h3 says Network is unreachable. When r1-eth2 went down, Linux removed the /23 route that used it, and r1 had no other route for site B, even though r1 → r2 → r3 still worked.
+
+      Static routes only know what I typed and can't see the other path. A routing protocol like OSPF would have noticed the link was gone and switched to the path through r2. A backup static route via r2 with a higher metric would also have worked, but I'd have to plan it in advance.
+
   control_plane:
     question: "In your network, what was the control plane? Who worked out the routes, and what does that mean for a network of 40 routers?"
-    answer: ""
+    answer: |
+      I was the control plane. I worked out all 8 routes by hand in network.yaml, check_paths() checked them for loops and missing routes, and build_routed.py pushed them to the routers. The routers just looked up their tables.
+
+      With 40 routers it would be far more routes, and every link failure would need me to change the file and rebuild. That's too slow and easy to get wrong, so it needs a routing protocol or a controller that works out the routes from the topology by itself.
