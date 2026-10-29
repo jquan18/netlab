@@ -1,0 +1,73 @@
+# missing.yaml: a broken copy of network.yaml, with r2's route to h1's LAN deleted.
+# check_paths() must stop it before anything is built.
+#
+#   python3 build_routed.py network.yaml      checks it, then builds it in Mininet
+#   python3 make_page3.py network.yaml        checks it, then writes docs/week3/index.html
+#
+# Each LAN has one router (.1 on the LAN) and one host (.10).
+# On each link, the first router named is .1 and the second is .2.
+#
+# Design: two sites joined in a ring.
+#
+#   h1 -- r1 ------ r2 -- h2        site A: 10.8.0.0/23 (h1's and h2's LANs)
+#          |        |
+#   h4 -- r4 ------ r3 -- h3        site B: 10.8.2.0/23 (h3's and h4's LANs)
+#
+# The four router links form a loop, so every pair of routers has two ways to reach
+# each other. Each site's two LANs sit next to each other in the address plan, so a
+# router in one site can reach the whole other site with one /23 summary route.
+# The links are named after the routers they join (r1-r2 is 12), like the lab, and
+# sit well away from the LANs so they never fall inside a summary.
+
+student_id_last4: "3308"
+
+routers: [r1, r2, r3, r4]
+
+lans:
+  # Site A
+  - name: lan-h1
+    network: 10.8.0.0/24
+    router: r1
+    host: h1
+  - name: lan-h2
+    network: 10.8.1.0/24
+    router: r2
+    host: h2
+  # Site B
+  - name: lan-h3
+    network: 10.8.2.0/24
+    router: r3
+    host: h3
+  - name: lan-h4
+    network: 10.8.3.0/24
+    router: r4
+    host: h4
+
+links:
+  - [r1, r2, 10.8.12.0/30]   # inside site A
+  - [r3, r4, 10.8.34.0/30]   # inside site B
+  - [r2, r3, 10.8.23.0/30]   # between the sites
+  - [r1, r4, 10.8.14.0/30]   # between the sites: the second path
+
+# Each router: one route to its neighbour's LAN in the same site, and one summary
+# route for the whole other site, across its own inter-site link.
+routes:
+  r1:
+    - to: 10.8.1.0/24      # h2, same site
+      via: 10.8.12.2
+    - to: 10.8.2.0/23      # summary: site B (h3 and h4), via r4
+      via: 10.8.14.2
+  r2:
+    # BROKEN: r2's route to h1's LAN (10.8.0.0/24) is deleted
+    - to: 10.8.2.0/23      # summary: site B, via r3
+      via: 10.8.23.2
+  r3:
+    - to: 10.8.3.0/24      # h4, same site
+      via: 10.8.34.2
+    - to: 10.8.0.0/23      # summary: site A (h1 and h2), via r2
+      via: 10.8.23.1
+  r4:
+    - to: 10.8.2.0/24      # h3, same site
+      via: 10.8.34.1
+    - to: 10.8.0.0/23      # summary: site A, via r1
+      via: 10.8.14.1
