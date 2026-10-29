@@ -69,14 +69,11 @@ def routing_tables_section(spec):
     for router in spec["routers"]:
         entries = [(i.network, "directly connected") for i in plan(spec)[router]]
         entries += [
-            (ipaddress.ip_network(r["to"]), f"via {r['via']}") for r in (spec.get("routes") or {}).get(router) or []
+            (ipaddress.ip_network(r["to"]), r["via"]) for r in (spec.get("routes") or {}).get(router) or []
         ]
         entries.sort(key=lambda e: (-e[0].prefixlen, e[0]))  # longest prefix first, as LPM prefers them
-        rows = "".join(f"<tr><td><code>{esc(net)}</code></td><td>{esc(where)}</td></tr>" for net, where in entries)
-        parts.append(
-            f"<h3>{esc(router)}</h3><table><thead><tr><th>Destination</th><th>Next hop</th></tr></thead>"
-            f"<tbody>{rows}</tbody></table>"
-        )
+        rows = "".join(f"<tr><td>{esc(net)}</td><td>{esc(where)}</td></tr>" for net, where in entries)
+        parts.append(f"<h3>{esc(router)}</h3><table><tr><th>Destination</th><th>Next hop</th></tr>{rows}</table>")
     return "\n".join(parts)
 
 
