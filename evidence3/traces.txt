@@ -1,0 +1,13 @@
+traceroute to 10.8.1.10 (10.8.1.10), 30 hops max, 60 byte packets
+ 1  10.8.0.1  0.124 ms  0.011 ms  0.005 ms
+ 2  10.8.12.2  0.493 ms  0.012 ms  0.008 ms
+ 3  10.8.1.10  0.373 ms  0.012 ms  0.009 ms
+traceroute to 10.8.2.10 (10.8.2.10), 30 hops max, 60 byte packets
+ 1  10.8.0.1  0.027 ms  0.006 ms  0.005 ms
+ 2  10.8.14.2  0.127 ms  0.012 ms  0.009 ms
+ 3  * * *
+ 4  10.8.2.10  0.313 ms  0.015 ms  0.011 ms
+traceroute to 10.8.3.10 (10.8.3.10), 30 hops max, 60 byte packets
+ 1  10.8.0.1  0.030 ms  0.006 ms  0.006 ms
+ 2  10.8.14.2  0.014 ms  0.008 ms  0.008 ms
+ 3  10.8.3.10  0.031 ms  0.009 ms  0.009 ms

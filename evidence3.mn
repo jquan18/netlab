@@ -1,0 +1,17 @@
+sh echo "== r1" > evidence3/routes.txt
+r1 ip route >> evidence3/routes.txt
+sh echo "== r2" >> evidence3/routes.txt
+r2 ip route >> evidence3/routes.txt
+sh echo "== r3" >> evidence3/routes.txt
+r3 ip route >> evidence3/routes.txt
+sh echo "== r4" >> evidence3/routes.txt
+r4 ip route >> evidence3/routes.txt
+h1 traceroute -n -I h2 > evidence3/traces.txt
+h1 traceroute -n -I h3 >> evidence3/traces.txt
+h1 traceroute -n -I h4 >> evidence3/traces.txt
+r1 ip route get h3 > evidence3/summary.txt
+r1 ip route get h4 >> evidence3/summary.txt
+link r1 r4 down
+h1 traceroute -n -I -m 5 -w 1 -q 1 h3 > evidence3/failure.txt
+r1 ip route get h3 >> evidence3/failure.txt 2>&1
+link r1 r4 up
