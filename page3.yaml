@@ -8,7 +8,7 @@ answers:
   design:
     question: "Describe your design: why these routers, LANs and links, and how you chose the addresses."
     answer: |
-      I split it into two sites, r1/r2 and r3/r4, and joined the four routers in a ring so there's always a second path. Each site's two LANs are next to each other (10.8.0-1 and 10.8.2-3), so one /23 covers a whole site. The links are /30s named after their routers, like 10.8.14.0/30 for r1–r4.
+      I split it into two sites, r1 and r2 in one and r3 and r4 in the other, and joined the four routers in a ring so there is always a second path. Each site's two LANs are next to each other (10.8.0.0/24 and 10.8.1.0/24, then 10.8.2.0/24 and 10.8.3.0/24), so one /23 covers a whole site. The links are /30s named after their routers, like 10.8.14.0/30 for r1–r4.
 
       Hop 3 to h3 in traces.txt is * * * because r3 replies from 10.8.23.2 and r1 has no route back to that link, so it drops it. h3 still answers.
 
@@ -20,9 +20,9 @@ answers:
   failure:
     question: "When you took a link down, what happened, and why couldn't your routes recover even though another path existed? What would have recovered?"
     answer: |
-      I took down r1–r4. In failure.txt the trace to h3 gets nothing and r1 says Network is unreachable, because the /23 route went away with the link. The path through r2 still worked, but static routes can't find it by themselves. OSPF, or a backup route via r2 with a higher metric, would have recovered.
+      I took down r1–r4. In failure.txt the trace to h3 gets nothing and r1 says Network is unreachable, because the /23 route went away with the link. The path through r2 still worked, but static routes cannot find it by themselves. OSPF, or a backup route via r2 with a higher metric, would have recovered.
 
   control_plane:
     question: "In your network, what was the control plane? Who worked out the routes, and what does that mean for a network of 40 routers?"
     answer: |
-      Me. I worked out all 8 routes in network.yaml, check_paths() checked them and the script pushed them. With 40 routers that's way too many routes to do by hand and fix after every failure, so you'd want a routing protocol or a controller doing it.
+      Me. I worked out all 8 routes in network.yaml, check_paths() checked them and the script pushed them. With 40 routers that is way too many routes to do by hand and fix after every failure, so you would want a routing protocol or a controller doing it.
